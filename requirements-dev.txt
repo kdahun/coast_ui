@@ -1,0 +1,3 @@
+# 검사·캡처 전용 (화면 실행에는 필요 없음). 캡처는 설치된 Chrome/Edge 를 channel 로 쓴다 — 브라우저 내려받기 없음.
+playwright>=1.45,<2
+requests>=2.31,<3

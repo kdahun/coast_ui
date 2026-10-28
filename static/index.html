@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>해안국 관리자 화면 — AIS 무결성</title>
+<link rel="stylesheet" href="/static/vendor/ol.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<!-- 공통 상단 띠: 이름 · 메뉴 5개 · 조건 버튼 하나 (조건은 팝오버에 접힘, URL 해시 질의에 실린다) -->
+<header id="topbar">
+  <div class="brand">해안국 관리자 화면 <span class="sub">읽기 전용</span></div>
+  <nav id="menu">
+    <a href="#/overview" data-page="overview">① 상황판</a>
+    <a href="#/map" data-page="map">② 지도</a>
+    <a href="#/ships" data-page="ships">③ 선박 목록</a>
+    <a href="#/flow" data-page="flow">④ 수신 현황</a>
+    <a href="#/signal" data-page="signal">⑤ 신호 품질</a>
+  </nav>
+  <span id="status" class="status"></span>
+  <button id="condBtn" class="cond" title="데이터 소스 · 기간 · 판정기 · 정답 보기">조건 —</button>
+  <div id="condPop" class="pop hidden">
+    <label>데이터 소스 <select id="src"></select></label>
+    <label>기간 <input type="datetime-local" id="t0" step="60"> ~ <input type="datetime-local" id="t1" step="60"></label>
+    <div class="row"><button id="applyPeriod">기간 적용</button> <button id="resetPeriod">전체 기간</button> <small>기간을 바꾸면 합산(카드·목록·수신 현황·등고선)이 다시 계산된다</small></div>
+    <label>판정기 <select id="judge"></select> <small>룰 = 위협 엔진 · XGB/kNN = 학습 모델(G 판)</small></label>
+    <label id="truthWrap" class="hidden"><input type="checkbox" id="truth"> 정답 보기 <small>생성 벌의 정답지로 판정을 바꿔 본다</small></label>
+    <div class="row muted small" id="condInfo"></div>
+  </div>
+</header>
+
+<!-- ① 상황판 — "지금 급한 배가 몇 척?" -->
+<main id="page-overview" class="page">
+  <p id="ovSentence" class="sentence">불러오는 중…</p>
+  <div id="ovTiles" class="tiles"></div>
+  <div class="ovGrid">
+    <section class="box">
+      <h2>지금 봐야 할 배 5척 <small>영향 H → 위협 번호 → 비정상 비율 순</small></h2>
+      <table id="ovTop" class="plain"><thead><tr><th>MMSI</th><th>등급</th><th>대표 코드 · 뜻</th><th>마지막 보고</th></tr></thead><tbody></tbody></table>
+      <p class="muted small">행을 누르면 배 상세로 간다. 전체는 ③ 선박 목록.</p>
+    </section>
+    <section class="box">
+      <h2>어디에 있나 <small>배 점만 · 누르면 ② 지도</small></h2>
+      <div id="map-mini" class="minimap"><div class="mapOverlay" id="miniGo" title="② 지도로">지도 열기 →</div></div>
+      <p id="ovSite" class="small"></p>
+    </section>
+  </div>
+  <h2>위협 1~5 <small>배 수 · 비정상 행 수 (기간 합산) — 누르면 그 위협만 목록에</small></h2>
+  <div id="threatCards" class="cards5"></div>
+</main>
+
+<!-- ② 지도 — "어디 있나?" 지도 말고는 전부 접힌다 -->
+<main id="page-map" class="page mapPage">
+  <div id="map-main" class="bigmap"></div>
+  <div id="toolbar" class="toolbar">
+    <button class="tb" data-panel="search" title="검색 (MMSI)">🔍</button>
+    <button class="tb" data-panel="filter" title="필터 (영향 · 위협 · 종류 · 상태)">⚑<span id="filterCount" class="cnt"></span></button>
+    <button class="tb" data-panel="layers" title="레이어 (등고선 · 밀도 · 항적)">◧</button>
+    <button class="tb" data-panel="legend" title="범례">≡</button>
+  </div>
+  <div id="panel-search" class="panel hidden"><h3>검색 <small>MMSI</small></h3><input type="search" id="search" placeholder="MMSI 숫자 일부"><div id="searchHits" class="hits"></div></div>
+  <div id="panel-filter" class="panel hidden">
+    <h3>필터 <small>조합 가능 · 목록·수신 현황에도 같이 적용</small></h3>
+    <div class="fgroup"><b>영향 등급</b><div id="fGrades"></div></div>
+    <div class="fgroup"><b>위협</b><div id="fThreats"></div></div>
+    <div class="fgroup"><b>메시지 종류</b> <select id="kindSel"><option value="">전체</option></select></div>
+    <div class="fgroup"><b>상태</b> <select id="navSel"><option value="">전체</option><option value="moving">항해 중 (≥ 0.5 kn)</option><option value="anchored">정박 (&lt; 0.5 kn)</option></select></div>
+    <div class="fgroup"><b>해안국</b> <select id="siteSel"><option value="">전체</option></select></div>
+    <div class="row"><span id="filterSummary" class="muted small"></span> <button id="filterClear">모두 해제</button></div>
+  </div>
+  <div id="panel-layers" class="panel hidden">
+    <h3>레이어</h3>
+    <label><input type="checkbox" id="lyMargin"> 수신 여유 등고선 <small>RSSI − (−107 dBm). 0 / 10 / 20 dB</small></label>
+    <label><input type="checkbox" id="lyEnv"> 환경 잔차 등고선 <small>거리 기대값 대비. 음수 = 가림 의심</small></label>
+    <label><input type="checkbox" id="lyDensity"> 보고 밀도 <small>0.5 km 칸의 (배, 분) 수 — 비어 있는 곳 = 안 들린 곳일 수 있음</small></label>
+    <label><input type="checkbox" id="lyEnvloss"> ENV_LOSS 비율 <small>환경성 유실 갈래 행 비율</small></label>
+    <label><input type="checkbox" id="lyTrack" checked> 항적(선택 배) <small>기간 안 위치 보고를 선으로</small></label>
+    <div id="layerNote" class="muted small"></div>
+  </div>
+  <div id="panel-legend" class="panel hidden"><h3>범례</h3><div id="legend"></div></div>
+  <div id="timebar" class="timebar">
+    <button id="tPrev" title="1분 전">◀</button>
+    <button id="tPlay" title="재생 — 1초마다 1분">▶</button>
+    <button id="tNext" title="1분 뒤">▶|</button>
+    <input type="range" id="tslider" min="0" max="0" step="1">
+    <span id="tlabel" class="mono">—</span>
+    <span id="mapCount" class="muted small"></span>
+  </div>
+  <div id="popup" class="popup hidden"></div>
+  <aside id="shipCard" class="shipCard hidden"></aside>
+</main>
+
+<!-- ③ 선박 목록 — "어느 배?" -->
+<main id="page-ships" class="page">
+  <div class="listTools">
+    <input type="search" id="listSearch" placeholder="MMSI 검색">
+    <select id="listKind"><option value="">메시지 종류 전체</option></select>
+    <select id="listState"><option value="">상태 전체</option><option value="abn">비정상만</option><option value="hold">보류만</option><option value="ok">정상만</option></select>
+    <span id="listCount" class="muted"></span>
+    <div id="filterBar" class="filterbar"></div>
+  </div>
+  <div class="tableWrap"><table id="shipTable"><thead></thead><tbody></tbody></table></div>
+</main>
+
+<!-- ③-상세 #/ship/<mmsi> -->
+<main id="page-ship" class="page">
+  <div class="row"><a href="#/ships" id="backList">← 목록</a> <a href="#/map" id="toMap">지도에서 보기</a></div>
+  <div id="shipDetail" class="detailGrid"><p class="muted">불러오는 중…</p></div>
+</main>
+
+<!-- ④ 수신 현황 — "어디서 얼마나 들어오나?" (옛 토폴로지, 숫자 그대로) -->
+<main id="page-flow" class="page">
+  <p id="flowSentence" class="sentence">불러오는 중…</p>
+  <div id="flowFilterBar" class="filterbar"></div>
+  <section class="box"><h2>① 해안국별 <small>수신소마다 받은 메시지 — 정상(회색) · 비정상(빨강) · 보류(분홍)</small></h2><div id="barSite" class="bars"></div><p class="cap">이 막대는 수신소가 받은 메시지 중 판정 결과의 비율입니다. 오른쪽 숫자는 건수와 배 수. 조각을 누르면 목록·지도가 그것만 보여 줍니다.</p></section>
+  <section class="box"><h2>② 메시지 종류별 <small>AIS 위치 보고 · AIS 정적·기타 · ASM · VDE</small></h2><div id="barKind" class="bars"></div><p class="cap">어떤 종류의 메시지가 얼마나 들어오고, 종류마다 비정상 비율이 어떤지. VDE 는 데이터에 없어 0건 — 자리만.</p></section>
+  <section class="box"><h2>③ 위협별 배 수 <small>위협 1~5 + 보류 — 색 = 영향 등급</small></h2><div id="barThreat" class="bars"></div><p class="cap">배 한 척은 그 배의 가장 센 코드의 위협으로 한 번만 셉니다. 보류 = 비정상 없이 환경성 유실·미상·Unknown 만 있는 배.</p></section>
+  <section class="box"><h2>선박 상위 20 <small>영향 → 위협 → 비정상 비율</small></h2><div id="flowTop"></div></section>
+</main>
+
+<!-- ⑤ 신호 품질 — "전파 상태는?" -->
+<main id="page-signal" class="page">
+  <p id="sigSentence" class="sentence">불러오는 중…</p>
+  <div id="sigCards" class="tiles4"></div>
+  <div class="sigGrid">
+    <section class="box">
+      <div class="row">
+        <label><input type="checkbox" id="sgMargin" checked> 수신 여유 등고선</label>
+        <label><input type="checkbox" id="sgEnv"> 환경 잔차 등고선</label>
+        <label><input type="checkbox" id="sgDensity"> 보고 밀도</label>
+        <label><input type="checkbox" id="sgEnvloss"> ENV_LOSS 비율</label>
+        <label><input type="checkbox" id="sgShips" checked> 배 위치(점)</label>
+      </div>
+      <div id="map-signal" class="sigmap"></div>
+      <div id="sigLegend" class="small"></div>
+    </section>
+    <section class="box why">
+      <h2>왜 이렇게 그렸나</h2>
+      <ol id="sigWhy"></ol>
+      <p><a href="/docs/SIGNAL_QUALITY_BASIS.md" target="_blank">docs/SIGNAL_QUALITY_BASIS.md — 출처 URL·식·설계값 표</a></p>
+    </section>
+  </div>
+</main>
+
+<script src="/static/vendor/ol.js"></script>
+<script src="/static/rotation.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "_doc": "지도 아이콘 색 매핑 — 한 곳. 파일은 static/icons/vessel_<color>.png (20×10 px, 0° 에서 오른쪽(동)을 향한다). 회전 = (침로 − points_deg)·π/180, OL Icon.rotation 은 시계방향 라디안.",
+  "icon_points_deg": 90,
+  "size_px": [20, 10],
+  "by_impact": { "H": "red", "M": "yellow", "L": "blue" },
+  "by_state": { "ok": "gray", "hold": "pink" },
+  "selected": "green",
+  "meaning": {
+    "red": "영향 H — 즉시 확인 (위협 1 제어 · 위협 2 DOS)",
+    "yellow": "영향 M — 확인 필요 (위협 3 스푸핑 · 위협 4 간섭)",
+    "blue": "영향 L — 참고 (위협 5 오작동·설정)",
+    "gray": "정상 / 판정 없음",
+    "pink": "보류 — 환경성 유실(ENV_LOSS)·미상(UNKNOWN)·kNN Unknown",
+    "green": "선택한 배 (테두리 강조와 병행)"
+  },
+  "stale_opacity": 0.45,
+  "no_heading_marker": "north_question",
+  "no_heading_doc": "방향 미상 배도 에셋으로 그린다(북쪽 0° 고정) + 작은 ? 표식. 원형 점은 쓰지 않는다(2차). 우선순위 heading → cog → track → last → none"
+}

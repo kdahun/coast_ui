@@ -1,0 +1,4 @@
+# static/vendor — 버전 고정 사본 (CDN 의존 금지 · 사내망). 2026-10-27 내려받음.
+ol.js            OpenLayers 9.2.4   https://cdn.jsdelivr.net/npm/ol@9.2.4/dist/ol.js      (전체 빌드, 전역 ol)
+ol.css           OpenLayers 9.2.4   https://cdn.jsdelivr.net/npm/ol@9.2.4/ol.css
+# 2차(2026-10-27): d3 7.9.0 · d3-sankey 0.12.3 삭제 — 선버스트·생키를 없애고 수신 현황 막대·시간별 막대는 순수 DOM/CSS 로 그린다.
