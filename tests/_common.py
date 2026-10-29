@@ -18,10 +18,11 @@ for _s in (sys.stdout, sys.stderr):
 from coast import mlall, settings  # noqa: E402
 
 BASE = "http://127.0.0.1:8800"
-FILES = {"real": "risk_map_real.parquet", "ds015": "risk_map_ds015.parquet"}
+FILES = {"real": "risk_map_real.parquet", "ds015": "risk_map_ds015.parquet", "ds024": "risk_map_ds024.parquet"}
 # 검사 기간 — 소스마다 (시작, 끝). None = 전체. 부분 기간은 시간 필터가 맞는지도 본다
 PERIODS = {"real": [(None, None), ("2026-06-09T20:00:00", "2026-06-09T23:00:00")],
-           "ds015": [(None, None), ("2020-03-20T12:00:00", "2020-03-20T15:00:00")]}
+           "ds015": [(None, None), ("2020-03-20T12:00:00", "2020-03-20T15:00:00")],
+           "ds024": [(None, None), ("2020-03-30T12:00:00", "2020-03-30T15:00:00")]}
 
 
 def base() -> str:
