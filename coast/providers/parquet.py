@@ -4,6 +4,7 @@
   risk_map_real.parquet   부산 실해역(수신소 1) — 룰·XGB G·kNN G 판정 열
   risk_map_ds015.parquet  생성 벌 ds_015 — + 정답 열(y_truth__*)
   risk_map_ds024.parquet  생성 벌 ds_024 — + 정답 열 (2026-10-28 A4 회차 평가 벌)
+  risk_map_ds033.parquet  생성 벌 ds_033 — + 정답 열 (2026-10-30 A6 회차 평가 벌)
   (2차, 2026-10-27)      risk_map 에 `heading`(선수, 도)·`course`(COG, 도)·`speed`(SOG, 노트) 열이 들어왔다
                           (ml_all build_risk_map.py 가 DB 값 그대로 — AIS 관례 HDG 511 · COG 360 · SOG 102.3 = "없음").
                           BASE_COLS 로 바로 읽는다. 세 열 중 risk_map 에 **없는 것만** ml_table_<key>.parquet 에서
@@ -37,6 +38,8 @@ SOURCES = {
     "ds015": {"file": "risk_map_ds015", "label": "생성 벌 ds_015 (정답 있음)", "kind": "generated", "ml_table": "ml_table_ds015.parquet"},
     # 2026-10-28 A4 재학습 회차(학습 ds_016~023) 평가 벌 — ml_all build_risk_map.py --dataset ds_024
     "ds024": {"file": "risk_map_ds024", "label": "생성 벌 ds_024 (정답 있음)", "kind": "generated", "ml_table": "ml_table_ds024.parquet"},
+    # 2026-10-30 A6 재학습 회차(학습 ds_025~032) 평가 벌 — ml_all build_risk_map.py --dataset ds_033
+    "ds033": {"file": "risk_map_ds033", "label": "생성 벌 ds_033 (정답 있음)", "kind": "generated", "ml_table": "ml_table_ds033.parquet"},
 }
 BASE_COLS = ["mmsi", "vsi_time", "site_id", "msg_type", "channel", "rssi", "snr", "rssi_resid", "snr_resid",
              "dist_site_km", "lat", "lon", "has_pos", "frame", "code_primary", "heading", "course", "speed"]
